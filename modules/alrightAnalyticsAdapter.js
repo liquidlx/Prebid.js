@@ -1,5 +1,5 @@
 /**
- * AA - analytics adapter for alright analytics
+ * Analytics adapter for Alright analytics
  */
 
 var events = require('../src/events.js');
@@ -12,9 +12,7 @@ var BID_TIMEOUT = CONSTANTS.EVENTS.BID_TIMEOUT;
 var BID_RESPONSE = CONSTANTS.EVENTS.BID_RESPONSE;
 var BID_WON = CONSTANTS.EVENTS.BID_WON;
 
-var _disableInteraction = { nonInteraction: true };
 var _analyticsQueue = [];
-var _aaGlobal = null;
 var _enableCheck = true;
 var _category = 'Prebid.js Bids';
 var _eventCount = 0;
@@ -23,23 +21,21 @@ var _cpmDistribution = null;
 var _trackerSend = null;
 var _sampled = true;
 
+var _paq = window._paq = window._paq || [];
+
 let adapter = {};
 
 /**
- * This will enable sending data to google analytics. Only call once, or duplicate data will be sent!
+ * This will enable sending data to alright analytics. Only call once, or duplicate data will be sent!
  * @param  {object} provider use to set AA global (if renamed);
  * @param  {object} options use to configure adapter;
  * @return {[type]}    [description]
  */
 adapter.enableAnalytics = function ({ provider, options }) {
-  _aaGlobal = provider || 'alright';
   _trackerSend = options && options.trackerName ? options.trackerName + '.send' : 'send';
   _sampled = typeof options === 'undefined' || typeof options.sampling === 'undefined' ||
              Math.random() < parseFloat(options.sampling);
 
-  if (options && typeof options.global !== 'undefined') {
-    _aaGlobal = options.global;
-  }
   if (options && typeof options.enableDistribution !== 'undefined') {
     _enableDistribution = options.enableDistribution;
   }
@@ -98,7 +94,7 @@ adapter.enableAnalytics = function ({ provider, options }) {
       sendBidWonToAa(bid);
     });
   } else {
-    utils.logMessage('Prebid.js google analytics disabled by sampling');
+    utils.logMessage('Prebid.js alright analytics disabled by sampling');
   }
 
   // finally set this function to return log message, prevents multiple adapter listeners
@@ -112,10 +108,10 @@ adapter.getTrackerSend = function getTrackerSend() {
 };
 
 /**
- * Check if gaGlobal or window.ga is defined on page. If defined execute all the GA commands
+ * Check if _paq is defined on page. If defined execute all commands
  */
 function checkAnalytics() {
-  if (_enableCheck && typeof window[_aaGlobal] === 'function') {
+  if (_enableCheck && _paq) {
     for (var i = 0; i < _analyticsQueue.length; i++) {
       _analyticsQueue[i].call();
     }
@@ -129,7 +125,7 @@ function checkAnalytics() {
     _enableCheck = false;
   }
 
-  utils.logMessage('event count sent to GA: ' + _eventCount);
+  utils.logMessage('event count sent to Alright Analytics: ' + _eventCount);
 }
 
 function convertToCents(dollars) {
@@ -203,7 +199,7 @@ function sendBidRequestToAa(bid) {
   if (bid && bid.bidderCode) {
     _analyticsQueue.push(function () {
       _eventCount++;
-      window[_aaGlobal](_trackerSend, 'event', _category, 'Requests', bid.bidderCode, 1, _disableInteraction);
+      _paq.push(['trackEvent', _category, 'Requests', bid.bidderCode]);
     });
   }
 
@@ -219,7 +215,7 @@ function sendBidResponseToAa(bid) {
       if (typeof bid.timeToRespond !== 'undefined' && _enableDistribution) {
         _eventCount++;
         var dis = getLoadTimeDistribution(bid.timeToRespond);
-        window[_aaGlobal](_trackerSend, 'event', 'Prebid.js Load Time Distribution', dis, bidder, 1, _disableInteraction);
+        _paq.push(['trackEvent', 'Prebid.js Load Time Distribution', dis, bidder]);
       }
 
       if (bid.cpm > 0) {
@@ -227,11 +223,11 @@ function sendBidResponseToAa(bid) {
         var cpmDis = getCpmDistribution(bid.cpm);
         if (_enableDistribution) {
           _eventCount++;
-          window[_aaGlobal](_trackerSend, 'event', 'Prebid.js CPM Distribution', cpmDis, bidder, 1, _disableInteraction);
+          _paq.push(['trackEvent', 'Prebid.js CPM Distribution', cpmDis, bidder]);
         }
 
-        window[_aaGlobal](_trackerSend, 'event', _category, 'Bids', bidder, cpmCents, _disableInteraction);
-        window[_aaGlobal](_trackerSend, 'event', _category, 'Bid Load Time', bidder, bid.timeToRespond, _disableInteraction);
+        _paq.push(['trackEvent', _category, 'Bids', bidder, 'cpmCents', cpmCents]);
+        _paq.push(['trackEvent', _category, 'Bid Load Time', bidder, 'response time', bid.timeToRespond]);
       }
     });
   }
@@ -245,7 +241,7 @@ function sendBidTimeouts(timedOutBidders) {
     utils._each(timedOutBidders, function (bidderCode) {
       _eventCount++;
       var bidderName = bidderCode.bidder;
-      window[_aaGlobal](_trackerSend, 'event', _category, 'Timeouts', bidderName, _disableInteraction);
+      _paq.push(['trackEvent', _category, 'Timeouts', bidderName]);
     });
   });
 
@@ -256,7 +252,7 @@ function sendBidWonToAa(bid) {
   var cpmCents = convertToCents(bid.cpm);
   _analyticsQueue.push(function () {
     _eventCount++;
-    window[_aaGlobal](_trackerSend, 'event', _category, 'Wins', bid.bidderCode, cpmCents, _disableInteraction);
+    _paq.push(['trackEvent', _category, 'Wins', bid.bidderCode, 'CPM Cents', cpmCents]);
   });
 
   checkAnalytics();
