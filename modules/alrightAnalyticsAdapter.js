@@ -14,7 +14,7 @@ var BID_WON = CONSTANTS.EVENTS.BID_WON;
 
 var _analyticsQueue = [];
 var _enableCheck = true;
-var _category = 'Prebid.js Bids';
+// var _category = 'Prebid.js Bids';
 var _eventCount = 0;
 var _enableDistribution = false;
 var _cpmDistribution = null;
@@ -199,7 +199,7 @@ function sendBidRequestToAa(bid) {
   if (bid && bid.bidderCode) {
     _analyticsQueue.push(function () {
       _eventCount++;
-      _paq.push(['trackEvent', _category, 'Requests', bid.bidderCode]);
+      _paq.push(['trackEvent', `Prebid - ${bid.bidderCode}`, 'Requests']);
     });
   }
 
@@ -226,8 +226,8 @@ function sendBidResponseToAa(bid) {
           _paq.push(['trackEvent', 'Prebid.js CPM Distribution', cpmDis, bidder]);
         }
 
-        _paq.push(['trackEvent', _category, 'Bids', bidder, 'cpmCents', cpmCents]);
-        _paq.push(['trackEvent', _category, 'Bid Load Time', bidder, 'response time', bid.timeToRespond]);
+        _paq.push(['trackEvent', `Prebid - ${bidder}`, 'Bids', `${cpmCents}`]);
+        _paq.push(['trackEvent', `Prebid - ${bidder}`, 'Bid Load Time', `${bid.timeToRespond}`]);
       }
     });
   }
@@ -241,7 +241,7 @@ function sendBidTimeouts(timedOutBidders) {
     utils._each(timedOutBidders, function (bidderCode) {
       _eventCount++;
       var bidderName = bidderCode.bidder;
-      _paq.push(['trackEvent', _category, 'Timeouts', bidderName]);
+      _paq.push(['trackEvent', `Prebid - ${bidderName}`, 'Timeouts']);
     });
   });
 
@@ -252,7 +252,7 @@ function sendBidWonToAa(bid) {
   var cpmCents = convertToCents(bid.cpm);
   _analyticsQueue.push(function () {
     _eventCount++;
-    _paq.push(['trackEvent', _category, 'Wins', bid.bidderCode, 'CPM Cents', cpmCents]);
+    _paq.push(['trackEvent', `Prebid - ${bid.bidderCode}`, 'Wins', `${cpmCents}`]);
   });
 
   checkAnalytics();
